@@ -1,33 +1,36 @@
 package com.example.fileupload.repository;
 
-import com.example.fileupload.model.FileEntity;
+import com.example.fileupload.model.UploadedFile;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
 
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
 import java.util.List;
 
 @Repository
-@Transactional
 public class FileRepositoryImpl implements FileRepository {
 
-    @PersistenceContext
-    private EntityManager entityManager;
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
     @Override
-    public FileEntity save(FileEntity fileEntity) {
-        entityManager.persist(fileEntity);
-        return fileEntity;
+    public void save(UploadedFile file) {
+        String sql = "INSERT INTO files (original_file_name, stored_file_path, file_type, file_size) VALUES (?, ?, ?, ?)";
+        jdbcTemplate.update(sql, file.getOriginalFileName(), file.getStoredFilePath(), file.getFileType(), file.getFileSize());
     }
 
     @Override
-    public FileEntity findById(Long id) {
-        return entityManager.find(FileEntity.class, id);
-    }
-
-    @Override
-    public List<FileEntity> findAll() {
-        return entityManager.createQuery("SELECT f FROM FileEntity f", FileEntity.class)
-                .getResultList();
+    public List<UploadedFile> findAll() {
+        String sql = "SELECT id, original_file_name, stored_file_path, file_type, file_size FROM files";
+        return jdbcTemplate.query(sql,
+                (rs, rowNum) -> {
+                    UploadedFile file = new UploadedFile();
+                    file.setId(rs.getLong("id"));
+                    file.setOriginalFileName(rs.getString("original_file_name"));
+                    file.setStoredFilePath(rs.getString("stored_file_path"));
+                    file.setFileType(rs.getString("file_type"));
+                    file.setFileSize(rs.getLong("file_size"));
+                    return file;
+                });
     }
 }
